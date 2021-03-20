@@ -20,7 +20,7 @@ export class Crossword {
     let words: Word[] = []
     let baseWords: BaseWord[] = orderMap.map((order) => this.baseWords[order])
 
-    words.push(new Word(this.baseWords[0], 'vertical', 0, 0))
+    words.push(new Word(baseWords[0], 'vertical', 0, 0))
     baseWords = baseWords.filter((w) => w !== baseWords[0])
 
     let idx = 0
