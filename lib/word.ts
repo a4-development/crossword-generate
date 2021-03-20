@@ -1,10 +1,9 @@
-export type ID = number
-
 type Point = {
   x: number
   y: number
 }
-type Direction = 'vertical' | 'horizontal'
+
+export type Direction = 'vertical' | 'horizontal'
 
 export class Word {
   text: string

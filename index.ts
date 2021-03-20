@@ -1,127 +1,100 @@
-import { Word } from './word'
+import { Word } from './lib/word'
+import { Crossword } from './lib/crossword'
 
-let baseWords = ['はっかそん', 'そーすこーど', 'しこうさくご', 'せいさく']
+const GENE_COUNT = 10
 
-function generateWords(): Word[] {
-  const words: Word[] = []
+export function createCrosswordWords(baseWords: string[]): Word[] {
+  const crossword = Crossword.initialize(baseWords)
 
-  words.push(new Word(baseWords[0], 'vertical', 0, 0))
-  baseWords = baseWords.filter((w) => w !== baseWords[0])
+  let genes = initialGene(baseWords)
 
-  let idx = 0
-  while (1) {
-    const w = searchMatchedWord(words[idx], baseWords, words)
+  for (let i = 0; i < 100; i++) {
+    const geneWithEvaluations = genes.map((gene) => {
+      crossword.generate(gene)
+      return { gene: gene, evaluation: crossword.evaluate() }
+    })
 
-    if (w !== null) {
-      words.push(w)
-      baseWords = baseWords.filter((baseWord) => baseWord !== w.text)
-      idx++
-    } else {
-      break
-    }
+    geneWithEvaluations.sort((a, b) => b.evaluation - a.evaluation)
+
+    const nextGenes = []
+    nextGenes.push(geneWithEvaluations[0].gene)
+    nextGenes.push(geneWithEvaluations[1].gene)
+
+    do {
+      let [gene1, gene2] = crossGene(
+        geneWithEvaluations[0].gene,
+        geneWithEvaluations[1].gene
+      )
+
+      if (Math.random() < 0.05) {
+        gene1 = mutateGene(gene1)
+      } else if (Math.random() < 0.1) {
+        gene2 = mutateGene(gene2)
+      }
+
+      nextGenes.push(gene1)
+      nextGenes.push(gene2)
+    } while (nextGenes.length < 10)
+
+    genes = nextGenes
   }
-  return words
+  crossword.generate(genes[0])
+  return crossword.words
 }
 
-function searchMatchedWord(
-  word: Word,
-  baseWords: string[],
-  words: Word[]
-): Word | null {
-  for (let i = 0; i < baseWords.length; i++) {
-    if (word.direction === 'vertical') {
-      for (let y = 0; y < word.text.length; y++) {
-        for (let x = 0; x < baseWords[i].length; x++) {
-          if (word.text[y] === baseWords[i][x]) {
-            const baseWord = new Word(
-              baseWords[i],
-              'horizontal',
-              word.head.x - x,
-              word.head.y + y
-            )
-            if (!isOverwrapping(baseWord, words, word)) {
-              return baseWord
-            }
-          }
-        }
-      }
-    } else if (word.direction === 'horizontal') {
-      for (let x = 0; x < word.text.length; x++) {
-        for (let y = 0; y < baseWords[i].length; y++) {
-          if (word.text[x] === baseWords[i][y]) {
-            const baseWord = new Word(
-              baseWords[i],
-              'vertical',
-              word.head.x + x,
-              word.head.y - y
-            )
-            if (!isOverwrapping(baseWord, words, word)) {
-              return baseWord
-            }
-          }
-        }
-      }
-    }
+function initialGene(baseWords: string[]): number[][] {
+  let genes = []
+  for (let i = 0; i < GENE_COUNT; i++) {
+    let gene = baseWords.map((_, i) => i)
+    gene = mutateGene(gene, 20)
+    genes.push(gene)
   }
-  return null
+  return genes
 }
 
-function isOverwrapping(
-  baseWord: Word,
-  words: Word[],
-  excludeWord: Word
-): boolean {
-  return words.some((word) => {
-    if (word.text === excludeWord.text) {
-      return false
-    } else {
-      if (baseWord.direction == 'vertical' && word.direction === 'vertical') {
-        return (
-          baseWord.head.x - 1 < word.head.x &&
-          word.head.x < baseWord.head.x + 1 &&
-          (baseWord.head.y - 1 >= word.tail.y ||
-            baseWord.tail.y + 1 >= word.head.y)
-        )
-      } else if (
-        baseWord.direction == 'horizontal' &&
-        word.direction === 'horizontal'
-      ) {
-        return (
-          baseWord.head.y - 1 < word.head.y &&
-          word.head.y < baseWord.head.y + 1 &&
-          (baseWord.head.x - 1 >= word.tail.x ||
-            baseWord.tail.x + 1 >= word.head.x)
-        )
-      } else if (
-        baseWord.direction == 'horizontal' &&
-        word.direction === 'vertical'
-      ) {
-        return (
-          baseWord.head.x - 1 <= word.head.x &&
-          baseWord.tail.x + 1 >= word.head.x &&
-          ((baseWord.head.y - 1 <= word.tail.y &&
-            word.tail.y <= baseWord.head.y + 1) ||
-            (baseWord.head.y + 1 >= word.head.y &&
-              word.head.y >= baseWord.head.y - 1))
-        )
-      } else if (
-        baseWord.direction == 'vertical' &&
-        word.direction === 'horizontal'
-      ) {
-        return (
-          baseWord.head.y - 1 <= word.head.y &&
-          baseWord.tail.y + 1 >= word.head.y &&
-          ((baseWord.head.x - 1 <= word.tail.x &&
-            word.tail.x <= baseWord.head.x + 1) ||
-            (baseWord.head.x + 1 >= word.head.x &&
-              word.head.x >= baseWord.head.x - 1))
-        )
-      }
-    }
-  })
+function mutateGene(gene: number[], count: number = 1): number[] {
+  for (let i = 0; i < count; i++) {
+    let mutatedGene = [...gene]
+    const p1 = Math.floor(Math.random() * gene.length)
+    const p2 = Math.floor(Math.random() * gene.length)
+    mutatedGene[p1] = gene[p2]
+    mutatedGene[p2] = gene[p1]
+    gene = mutatedGene
+  }
+  return gene
 }
 
-console.log('入力')
-console.log(baseWords)
-console.log('出力')
-console.log(generateWords())
+function crossGene(gene1: number[], gene2: number[]): [number[], number[]] {
+  const geneLength = gene1.length
+  const crossPoints = [
+    Math.floor((Math.random() * geneLength) / 2),
+    Math.floor((Math.random() * geneLength) / 2) + geneLength / 2,
+  ]
+
+  let childGene1 = [...gene1]
+  let childGene2 = [...gene2]
+
+  const tmp1 = gene1.slice(crossPoints[0], crossPoints[1])
+  const tmp2 = gene2.slice(crossPoints[0], crossPoints[1])
+
+  const replaceRule = tmp1.map((t1, i) => [t1, tmp2[i]])
+
+  childGene1.splice(crossPoints[0], crossPoints[1] - crossPoints[0], ...tmp2)
+  childGene2.splice(crossPoints[0], crossPoints[1] - crossPoints[0], ...tmp1)
+
+  for (let i = 0; i < crossPoints[0]; i++) {
+    replaceRule.forEach(([a, b]) => {
+      if (childGene1[i] === b) childGene1[i] = a
+      if (childGene2[i] === a) childGene2[i] = b
+    })
+  }
+
+  for (let i = crossPoints[1]; i < childGene1.length; i++) {
+    replaceRule.forEach(([a, b]) => {
+      if (childGene1[i] === b) childGene1[i] = a
+      if (childGene2[i] === a) childGene2[i] = b
+    })
+  }
+
+  return [childGene1, childGene2]
+}
