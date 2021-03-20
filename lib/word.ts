@@ -7,12 +7,20 @@ export type Direction = 'vertical' | 'horizontal'
 
 export class Word {
   text: string
+  id?: string
   direction: Direction
   head: Point
-  constructor(text: string, direction: Direction, x: number, y: number) {
+  constructor(
+    text: string,
+    direction: Direction,
+    x: number,
+    y: number,
+    id: string | undefined = undefined
+  ) {
     this.text = text
     this.direction = direction
     this.head = { x, y }
+    this.id = id
   }
   get tail(): Point {
     if (this.direction === 'vertical') {

@@ -1,6 +1,9 @@
 import { Word } from './word'
 
-type BaseWord = string
+export interface BaseWord {
+  id: string
+  text: string
+}
 
 export class Crossword {
   words: Word[]
@@ -20,7 +23,7 @@ export class Crossword {
     let words: Word[] = []
     let baseWords: BaseWord[] = orderMap.map((order) => this.baseWords[order])
 
-    words.push(new Word(baseWords[0], 'vertical', 0, 0))
+    words.push(new Word(baseWords[0].text, 'vertical', 0, 0, baseWords[0].id))
     baseWords = baseWords.filter((w) => w !== baseWords[0])
 
     let idx = 0
@@ -29,7 +32,7 @@ export class Crossword {
 
       if (w !== null) {
         words.push(w)
-        baseWords = baseWords.filter((baseWord) => baseWord !== w.text)
+        baseWords = baseWords.filter((baseWord) => baseWord.text !== w.text)
         idx++
       } else {
         break
@@ -40,19 +43,20 @@ export class Crossword {
 
   private searchMatchedWord(
     word: Word,
-    baseWords: string[],
+    baseWords: BaseWord[],
     words: Word[]
   ): Word | null {
     for (let i = 0; i < baseWords.length; i++) {
       if (word.direction === 'vertical') {
         for (let y = 0; y < word.text.length; y++) {
-          for (let x = 0; x < baseWords[i].length; x++) {
-            if (word.text[y] === baseWords[i][x]) {
+          for (let x = 0; x < baseWords[i].text.length; x++) {
+            if (word.text[y] === baseWords[i].text[x]) {
               const baseWord = new Word(
-                baseWords[i],
+                baseWords[i].text,
                 'horizontal',
                 word.head.x - x,
-                word.head.y + y
+                word.head.y + y,
+                baseWords[i].id
               )
               if (!this.isOverwrapping(baseWord, words, word)) {
                 return baseWord
@@ -62,13 +66,14 @@ export class Crossword {
         }
       } else if (word.direction === 'horizontal') {
         for (let x = 0; x < word.text.length; x++) {
-          for (let y = 0; y < baseWords[i].length; y++) {
-            if (word.text[x] === baseWords[i][y]) {
+          for (let y = 0; y < baseWords[i].text.length; y++) {
+            if (word.text[x] === baseWords[i].text[y]) {
               const baseWord = new Word(
-                baseWords[i],
+                baseWords[i].text,
                 'vertical',
                 word.head.x + x,
-                word.head.y - y
+                word.head.y - y,
+                baseWords[i].id
               )
               if (!this.isOverwrapping(baseWord, words, word)) {
                 return baseWord

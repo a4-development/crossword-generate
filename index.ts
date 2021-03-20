@@ -1,9 +1,9 @@
 import { Word } from './lib/word'
-import { Crossword } from './lib/crossword'
+import { BaseWord, Crossword } from './lib/crossword'
 
 const GENE_COUNT = 10
 
-export function createCrosswordWords(baseWords: string[]): Word[] {
+export function createCrosswordWords(baseWords: BaseWord[]): Word[] {
   const crossword = Crossword.initialize(baseWords)
 
   let genes = initialGene(baseWords)
@@ -42,7 +42,7 @@ export function createCrosswordWords(baseWords: string[]): Word[] {
   return crossword.words
 }
 
-function initialGene(baseWords: string[]): number[][] {
+function initialGene(baseWords: BaseWord[]): number[][] {
   let genes = []
   for (let i = 0; i < GENE_COUNT; i++) {
     let gene = baseWords.map((_, i) => i)
